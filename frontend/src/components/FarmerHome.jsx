@@ -3,12 +3,15 @@ import { ShoppingBag, ArrowUpRight, MapPin, Clock, CheckCircle, PhoneCall } from
 import MarketRatesPredictor from './MarketRatesPredictor';
 import AiAssistantBar from './AiAssistantBar';
 import WarehouseDirectory from './WarehouseDirectory';
-import { fetchBuyerDemands } from '../api';
+import { fetchBuyerDemands, createDemandOffer } from '../api';
 
 export default function FarmerHome({ onNavigate, onDirectSell }) {
   const [demands, setDemands] = useState([]);
   const [selectedDemand, setSelectedDemand] = useState(null);
+  const [offerQty, setOfferQty] = useState('');
   const [contactSuccess, setContactSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     fetchBuyerDemands().then(data => {
@@ -18,15 +21,37 @@ export default function FarmerHome({ onNavigate, onDirectSell }) {
 
   const handleSellClick = (demand) => {
     setSelectedDemand(demand);
+    setOfferQty(demand.quantity_needed_quintals.toString());
     setContactSuccess(false);
+    setErrorMsg('');
   };
 
-  const handleConfirmSell = () => {
-    setContactSuccess(true);
-    setTimeout(() => {
-      setSelectedDemand(null);
-      setContactSuccess(false);
-    }, 2200);
+  const handleConfirmSell = async () => {
+    if (!selectedDemand) return;
+    const qty = parseFloat(offerQty) || selectedDemand.quantity_needed_quintals;
+    if (qty <= 0) {
+      setErrorMsg('Please enter a valid quantity.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      await createDemandOffer(selectedDemand.id, {
+        quantity_quintals: qty,
+        offered_price_per_kg: selectedDemand.target_price_per_kg
+      });
+      setContactSuccess(true);
+      setTimeout(() => {
+        setSelectedDemand(null);
+        setContactSuccess(false);
+        if (onNavigate) onNavigate('History');
+      }, 1800);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to submit offer');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -155,20 +180,41 @@ export default function FarmerHome({ onNavigate, onDirectSell }) {
               </div>
             ) : (
               <div>
-                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, fontSize: '0.78rem', marginBottom: 16 }}>
+                {errorMsg && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '6px 10px', borderRadius: 6, fontSize: '0.74rem', marginBottom: 10 }}>
+                    {errorMsg}
+                  </div>
+                )}
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, fontSize: '0.78rem', marginBottom: 12 }}>
                   <div><strong>Buyer Representative:</strong> {selectedDemand.buyer_name}</div>
                   <div><strong>Target Rate:</strong> ₹{selectedDemand.target_price_per_kg} / kg</div>
                   <div><strong>Destination:</strong> {selectedDemand.location}</div>
                   <div><strong>Payment Route:</strong> Instant Escrow Release on Weighbridge Slip</div>
                 </div>
 
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label className="form-label">Offer Quantity (Quintals)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    max={selectedDemand.quantity_needed_quintals}
+                    className="form-input"
+                    value={offerQty}
+                    onChange={(e) => setOfferQty(e.target.value)}
+                  />
+                  <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                    Total Offer Value: ₹{((parseFloat(offerQty) || 0) * 100 * selectedDemand.target_price_per_kg).toLocaleString('en-IN')}
+                  </span>
+                </div>
+
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedDemand(null)}>
+                  <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setSelectedDemand(null)} disabled={loading}>
                     Cancel
                   </button>
-                  <button className="btn-primary" style={{ flex: 1.5 }} onClick={handleConfirmSell}>
+                  <button className="btn-primary" style={{ flex: 1.5 }} onClick={handleConfirmSell} disabled={loading}>
                     <PhoneCall size={14} />
-                    <span>Confirm & Send Offer</span>
+                    <span>{loading ? 'Creating Contract...' : 'Confirm & Send Offer'}</span>
                   </button>
                 </div>
               </div>

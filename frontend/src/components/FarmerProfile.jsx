@@ -1,10 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, ShieldCheck, MapPin, Award, Star, Sprout, Building, CheckCircle2, Lock } from 'lucide-react';
+import { fetchTransactions } from '../api';
 
 export default function FarmerProfile({ profile }) {
+  const [liveReviews, setLiveReviews] = useState([]);
+
+  useEffect(() => {
+    fetchTransactions('farmer').then((data) => {
+      if (data) {
+        const rated = data
+          .filter(t => t.quality_rating)
+          .map(t => ({
+            id: t.id,
+            buyer: t.buyer_name,
+            rating: t.quality_rating,
+            date: t.delivery_date || t.order_date,
+            crop: `${t.crop} (${t.variety})`,
+            comment: t.rating_feedback || "Produce inspected and approved on arrival."
+          }));
+        setLiveReviews(rated);
+      }
+    });
+  }, []);
+
   if (!profile) return null;
 
-  const sampleReviews = [
+  const displayReviews = liveReviews.length > 0 ? liveReviews : [
     {
       id: "REV_1",
       buyer: "KisanSetu Food Processing Ltd",
@@ -20,14 +41,6 @@ export default function FarmerProfile({ profile }) {
       date: "2 weeks ago",
       crop: "Nashik Red Onion",
       comment: "Properly cured onions, dry skins, 50mm+ uniform size. Exactly as committed in sample photos."
-    },
-    {
-      id: "REV_3",
-      buyer: "Zomato Hyperpure Sourcing",
-      rating: 4,
-      date: "1 month ago",
-      crop: "Green Chilli (Guntur Teja)",
-      comment: "Good pungency and fresh dark green color. Moisture was slightly on higher side but within spec."
     }
   ];
 
@@ -94,7 +107,7 @@ export default function FarmerProfile({ profile }) {
             Verified Buyer Audit Comments:
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {sampleReviews.map((rev) => (
+            {displayReviews.map((rev) => (
               <div key={rev.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, fontSize: '0.72rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <strong>{rev.buyer}</strong>

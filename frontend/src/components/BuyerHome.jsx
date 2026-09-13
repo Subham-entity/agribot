@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, MapPin, CheckCircle2, ShieldCheck, ArrowRight, Package } from 'lucide-react';
+import { ShoppingCart, Star, CheckCircle2, ShieldCheck, Package } from 'lucide-react';
 import MarketRatesPredictor from './MarketRatesPredictor';
 import AiAssistantBar from './AiAssistantBar';
 import { fetchProduceListings, createQuickBuy } from '../api';

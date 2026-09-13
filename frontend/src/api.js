@@ -171,3 +171,42 @@ export async function loginAadhaar(aadhaarNumber, role, otp = "123456") {
   }
   return await res.json();
 }
+
+export async function createDemandOffer(demandId, payload) {
+  const res = await fetch(`${API_BASE}/demands/${encodeURIComponent(demandId)}/offer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to send offer" }));
+    throw new Error(err.detail || "Failed to send offer");
+  }
+  return await res.json();
+}
+
+export async function bookWarehouseStorage(payload) {
+  const res = await fetch(`${API_BASE}/warehouses/book`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to book storage" }));
+    throw new Error(err.detail || "Failed to book storage");
+  }
+  return await res.json();
+}
+
+export async function updateTransactionStatus(transactionId, status) {
+  const res = await fetch(`${API_BASE}/transactions/${encodeURIComponent(transactionId)}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to update transaction status" }));
+    throw new Error(err.detail || "Failed to update transaction status");
+  }
+  return await res.json();
+}

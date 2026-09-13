@@ -1,17 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { History, CheckCircle2, Clock, Truck, FileText, ArrowDownLeft, ShieldCheck } from 'lucide-react';
-import { fetchTransactions } from '../api';
+import { History, CheckCircle2, FileText, ShieldCheck, Check } from 'lucide-react';
+import { fetchTransactions, updateTransactionStatus } from '../api';
 
 export default function FarmerHistory() {
   const [transactions, setTransactions] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [selectedTx, setSelectedTx] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
-  useEffect(() => {
+  const loadData = () => {
     fetchTransactions('farmer').then(data => {
       if (data) setTransactions(data);
     });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
+
+  const handleMarkCompleted = async (txId) => {
+    setUpdatingId(txId);
+    try {
+      await updateTransactionStatus(txId, 'COMPLETED');
+      loadData();
+    } catch (err) {
+      alert("Error updating order status: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const filtered = transactions.filter(t => {
     if (filter === 'ALL') return true;
@@ -125,7 +142,18 @@ export default function FarmerHistory() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
+                {!isDone && (
+                  <button
+                    className="btn-primary"
+                    style={{ padding: '5px 10px', fontSize: '0.72rem', background: '#059669' }}
+                    onClick={() => handleMarkCompleted(tx.id)}
+                    disabled={updatingId === tx.id}
+                  >
+                    <Check size={12} />
+                    <span>{updatingId === tx.id ? 'Updating...' : 'Mark Delivered (Weighbridge Slip)'}</span>
+                  </button>
+                )}
                 <button
                   className="btn-secondary"
                   style={{ padding: '5px 10px', fontSize: '0.72rem' }}

@@ -146,6 +146,47 @@ export default function MarketRatesPredictor({ onSelectCropForQuery }) {
               </div>
             </div>
 
+            {/* Historical 7-Week APMC Mandi Price Trend */}
+            {forecastData.historical_weekly && forecastData.historical_weekly.length > 0 && (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
+                    7-Week Wholesale Price Trajectory
+                  </span>
+                  <span style={{ fontSize: '0.66rem', color: '#059669', fontWeight: 700 }}>
+                    Low: ₹{Math.min(...forecastData.historical_weekly)} • Peak: ₹{Math.max(...forecastData.historical_weekly)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 48, gap: 5 }}>
+                  {forecastData.historical_weekly.map((p, idx) => {
+                    const min = Math.min(...forecastData.historical_weekly);
+                    const max = Math.max(...forecastData.historical_weekly);
+                    const heightPct = max === min ? 50 : Math.round(30 + ((p - min) / (max - min)) * 65);
+                    const isLatest = idx === forecastData.historical_weekly.length - 1;
+                    return (
+                      <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                        <span style={{ fontSize: '0.62rem', fontWeight: isLatest ? 800 : 600, color: isLatest ? '#047857' : '#64748b', marginBottom: 2 }}>
+                          ₹{p}
+                        </span>
+                        <div
+                          style={{
+                            width: '100%',
+                            height: `${heightPct}%`,
+                            background: isLatest ? 'linear-gradient(180deg, #10b981, #059669)' : '#cbd5e1',
+                            borderRadius: '3px 3px 0 0'
+                          }}
+                          title={`Week ${idx + 1}: ₹${p}/kg`}
+                        />
+                        <span style={{ fontSize: '0.58rem', color: '#94a3b8', marginTop: 2 }}>
+                          {isLatest ? 'Now' : `W${idx + 1}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Agronomist Advisory */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 10px', fontSize: '0.74rem', color: '#334155', marginTop: 8 }}>
               💡 <strong>Agronomist Advisory:</strong> {forecastData.advisory}

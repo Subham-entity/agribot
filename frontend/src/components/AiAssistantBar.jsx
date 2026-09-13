@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Send, Sparkles, Navigation, X } from 'lucide-react';
+import { Mic, MicOff, Send, Sparkles, Navigation, X, Volume2, VolumeX } from 'lucide-react';
 import { sendAiQuery } from '../api';
 
 const QUICK_PROMPTS = [
@@ -13,6 +13,7 @@ const QUICK_PROMPTS = [
 export default function AiAssistantBar({ userRole, onNavigate }) {
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef(null);
@@ -78,6 +79,22 @@ export default function AiAssistantBar({ userRole, onNavigate }) {
     }, 1800);
   };
 
+  const speakText = (text) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.95;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleSend = async (textToSend = query, isVoice = false) => {
     const q = textToSend.trim();
     if (!q) return;
@@ -86,6 +103,9 @@ export default function AiAssistantBar({ userRole, onNavigate }) {
     try {
       const result = await sendAiQuery(q, userRole, isVoice);
       setResponse(result);
+      if (isVoice && result?.reply) {
+        speakText(result.reply);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -180,12 +200,27 @@ export default function AiAssistantBar({ userRole, onNavigate }) {
               </span>
               <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Contextual Recommendation</span>
             </div>
-            <button
-              onClick={() => setResponse(null)}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
-            >
-              <X size={15} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => speakText(response.reply)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isSpeaking ? '#059669' : '#64748b' }}
+                title={isSpeaking ? "Stop voice audio" : "Read reply aloud"}
+              >
+                {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </button>
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                  }
+                  setIsSpeaking(false);
+                  setResponse(null);
+                }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
           </div>
 
           <p className="ai-reply-text">{response.reply}</p>
