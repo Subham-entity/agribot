@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, History, Plus, Users, User, Building, PlusCircle } from 'lucide-react';
+import { Home, History, Plus, Users, User, Building } from 'lucide-react';
 
 import Header from './components/Header';
 import AadhaarModal from './components/AadhaarModal';
@@ -18,41 +18,68 @@ import UploadDemand from './components/UploadDemand';
 import BuyerProfile from './components/BuyerProfile';
 
 export default function App() {
-  const [role, setRole] = useState('farmer'); // 'farmer' | 'buyer'
+  const [role, setRole] = useState(() => {
+    return localStorage.getItem('agrimarket_role') || 'farmer';
+  });
   const [activeTab, setActiveTab] = useState('Home');
   const [outdoorMode, setOutdoorMode] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
 
-  // User state
-  const [farmerProfile, setFarmerProfile] = useState({
-    id: "FARMER_4821",
-    name: "Rameshwar Patil",
-    role: "farmer",
-    aadhaar: "XXXX-4821",
-    phone: "+91 98224 81023",
-    location: "Niphad, Nashik District, Maharashtra",
-    fpo_name: "Sahyadri Agro Farmers Producer Co. Ltd",
-    landholding: "6.5 Acres (Drip Irrigated)",
-    crops_grown: ["Tomato", "Onion", "Green Chilli", "Grapes"],
-    reputation_score: 4.8,
-    total_reviews: 19
+  // User state with persistence
+  const [farmerProfile, setFarmerProfile] = useState(() => {
+    const saved = localStorage.getItem('agrimarket_farmer_profile');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      id: "FARMER_4821",
+      name: "Rameshwar Patil",
+      role: "farmer",
+      aadhaar: "XXXX-4821",
+      phone: "+91 98224 81023",
+      location: "Niphad, Nashik District, Maharashtra",
+      fpo_name: "Sahyadri Agro Farmers Producer Co. Ltd",
+      landholding: "6.5 Acres (Drip Irrigated)",
+      crops_grown: ["Tomato", "Onion", "Green Chilli", "Grapes"],
+      reputation_score: 4.8,
+      total_reviews: 19
+    };
   });
 
-  const [buyerProfile, setBuyerProfile] = useState({
-    id: "BUYER_9901",
-    name: "Vikramaditya Singhania",
-    company: "KisanSetu Food Processing & Cold Chain Ltd",
-    role: "buyer",
-    aadhaar: "XXXX-9901",
-    gstin: "27AAACK1234F1Z5",
-    phone: "+91 91672 34500",
-    location: "APMC Sector 19, Vashi, Navi Mumbai",
-    procurement_focus: ["Tomato", "Onion", "Wheat", "Potato"],
-    total_procured_tonnes: 320.5,
-    total_orders: 42,
-    credit_rating: "AAA Tier-1 Verified",
-    payment_terms: "Instant Escrow Release on Weighbridge Slip"
+  const [buyerProfile, setBuyerProfile] = useState(() => {
+    const saved = localStorage.getItem('agrimarket_buyer_profile');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      id: "BUYER_9901",
+      name: "Vikramaditya Singhania",
+      company: "KisanSetu Food Processing & Cold Chain Ltd",
+      role: "buyer",
+      aadhaar: "XXXX-9901",
+      gstin: "27AAACK1234F1Z5",
+      phone: "+91 91672 34500",
+      location: "APMC Sector 19, Vashi, Navi Mumbai",
+      procurement_focus: ["Tomato", "Onion", "Wheat", "Potato"],
+      total_procured_tonnes: 320.5,
+      total_orders: 42,
+      credit_rating: "AAA Tier-1 Verified",
+      payment_terms: "Instant Escrow Release on Weighbridge Slip"
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem('agrimarket_role', role);
+  }, [role]);
+
+  useEffect(() => {
+    localStorage.setItem('agrimarket_farmer_profile', JSON.stringify(farmerProfile));
+  }, [farmerProfile]);
+
+  useEffect(() => {
+    localStorage.setItem('agrimarket_buyer_profile', JSON.stringify(buyerProfile));
+  }, [buyerProfile]);
 
   // Toggle outdoor high-contrast mode
   const handleToggleOutdoor = () => {
@@ -83,6 +110,12 @@ export default function App() {
       setRole('buyer');
     }
     setActiveTab('Home');
+    setFeedRefreshKey(k => k + 1);
+  };
+
+  const handleListingCreated = () => {
+    setFeedRefreshKey(k => k + 1);
+    setActiveTab('Home');
   };
 
   const currentProfile = role === 'farmer' ? farmerProfile : buyerProfile;
@@ -105,11 +138,11 @@ export default function App() {
           {role === 'farmer' ? (
             <>
               {activeTab === 'Home' && (
-                <FarmerHome onNavigate={(tab) => setActiveTab(tab)} />
+                <FarmerHome key={feedRefreshKey} onNavigate={(tab) => setActiveTab(tab)} />
               )}
-              {activeTab === 'History' && <FarmerHistory />}
+              {activeTab === 'History' && <FarmerHistory key={feedRefreshKey} />}
               {activeTab === 'Upload' && (
-                <UploadProduce onNavigate={(tab) => setActiveTab(tab)} />
+                <UploadProduce onListingCreated={handleListingCreated} onNavigate={(tab) => setActiveTab(tab)} />
               )}
               {activeTab === 'Circles' && <CirclesDashboard />}
               {activeTab === 'Profile' && <FarmerProfile profile={farmerProfile} />}
@@ -117,11 +150,11 @@ export default function App() {
           ) : (
             <>
               {activeTab === 'Home' && (
-                <BuyerHome onNavigate={(tab) => setActiveTab(tab)} />
+                <BuyerHome key={feedRefreshKey} onNavigate={(tab) => setActiveTab(tab)} />
               )}
-              {activeTab === 'History' && <BuyerHistory />}
+              {activeTab === 'History' && <BuyerHistory key={feedRefreshKey} />}
               {activeTab === 'Upload' && (
-                <UploadDemand onNavigate={(tab) => setActiveTab(tab)} />
+                <UploadDemand onDemandCreated={handleListingCreated} onNavigate={(tab) => setActiveTab(tab)} />
               )}
               {activeTab === 'Profile' && <BuyerProfile profile={buyerProfile} />}
             </>

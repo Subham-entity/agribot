@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Warehouse, MapPin, Phone, Thermometer, ShieldCheck, Check } from 'lucide-react';
-import { fetchWarehouses } from '../api';
+import { fetchWarehouses, bookWarehouseStorage } from '../api';
 
 export default function WarehouseDirectory() {
   const [warehouses, setWarehouses] = useState([]);
   const [bookedMap, setBookedMap] = useState({});
+  const [bookingLoading, setBookingLoading] = useState({});
 
   useEffect(() => {
     fetchWarehouses().then((data) => {
@@ -12,11 +13,28 @@ export default function WarehouseDirectory() {
     });
   }, []);
 
-  const handleBook = (id) => {
-    setBookedMap(prev => ({ ...prev, [id]: true }));
-    setTimeout(() => {
-      setBookedMap(prev => ({ ...prev, [id]: false }));
-    }, 4000);
+  const handleBook = async (wh) => {
+    setBookingLoading(prev => ({ ...prev, [wh.id]: true }));
+    try {
+      const res = await bookWarehouseStorage({
+        warehouse_id: wh.id,
+        crop_name: wh.suitable_crops[0] || 'Harvested Crop',
+        quantity_mt: 10,
+        duration_months: 1
+      });
+      setBookedMap(prev => ({ ...prev, [wh.id]: res.booking_ref || 'Confirmed' }));
+      // Update local available capacity
+      setWarehouses(prev => prev.map(item => {
+        if (item.id === wh.id) {
+          return { ...item, available_capacity_mt: Math.max(0, item.available_capacity_mt - 10) };
+        }
+        return item;
+      }));
+    } catch (err) {
+      alert("Storage booking error: " + err.message);
+    } finally {
+      setBookingLoading(prev => ({ ...prev, [wh.id]: false }));
+    }
   };
 
   return (
@@ -123,12 +141,15 @@ export default function WarehouseDirectory() {
                     fontSize: '0.72rem',
                     background: isBooked ? '#16a34a' : 'var(--primary-600)'
                   }}
-                  onClick={() => handleBook(wh.id)}
+                  onClick={() => handleBook(wh)}
+                  disabled={Boolean(isBooked || bookingLoading[wh.id])}
                 >
-                  {isBooked ? (
+                  {bookingLoading[wh.id] ? (
+                    <span>Booking...</span>
+                  ) : isBooked ? (
                     <>
                       <Check size={12} />
-                      <span>Request Sent</span>
+                      <span>Reserved ({isBooked})</span>
                     </>
                   ) : (
                     <span>Book Storage</span>

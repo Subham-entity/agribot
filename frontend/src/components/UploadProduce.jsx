@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Calendar, MapPin, DollarSign, Package, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Calendar, MapPin, Package, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createProduceListing } from '../api';
 
 export default function UploadProduce({ onListingCreated, onNavigate }) {

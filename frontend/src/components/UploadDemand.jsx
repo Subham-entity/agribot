@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Calendar, MapPin, DollarSign, Package, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { PlusCircle, Calendar, MapPin, Package, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { createBuyerDemand } from '../api';
 
 export default function UploadDemand({ onDemandCreated, onNavigate }) {
